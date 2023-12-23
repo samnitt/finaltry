@@ -9,6 +9,7 @@ import plotly.express as px
 button_labels = [f"Button {i}" for i in range(1, 21)]
 elective = pd.read_excel('elective.xlsx')
 global student_details
+global repeat1
 student_details = pd.read_excel('student_details.xlsx',index_col = 0)
 repeat = pd.read_excel('repeat.xlsx',index_col = 0)
 repeat1 = pd.read_excel('repeat.xlsx',index_col = 0)
@@ -18,10 +19,27 @@ electivesix = elective['Q6'].tolist()
 electiveseven = elective['Q7'].tolist()
 
 
+main = 'EPGP-15A-002'
+l = repeat[repeat['Roll'] == main].index[0]
+A = student_details.loc[l, :].values.flatten().tolist()
+loop = repeat['Roll'].tolist()
+y = 0
+for x in loop:
+    m = repeat[repeat['Roll'] == x].index[0]
+    B = student_details.loc[m, :].values.flatten().tolist()
+    C = (set(A).intersection(B))
+    D = sorted(C)
+    E = len(D) - 1
+    if E < 0:
+        E = 0
+    repeat.iloc[y,1] = E 
+    y = y+1
+repeat1 = repeat[repeat['Common'] > 0]
+repeat1.loc[repeat1[repeat1['Roll'] == main].index[0],'Common'] = 0        
+
 
 app = dash.Dash(__name__)
 server = app.server
-
 
 app.layout = html.Div([
     dcc.Dropdown(
@@ -62,14 +80,14 @@ app.layout = html.Div([
 ])
 
 @app.callback(
-    Output('output-container-button', 'children'),
+    [Output('output-container-button', 'children'),
     #Output('submit-button', 'n_clicks'),
-    #Output('Histo','figure'),
-    Input('submit-button', 'n_clicks'),
+    Output('Histo','figure')],
+    [Input('submit-button', 'n_clicks'),
     Input('dropdown1', 'value'),
     Input('dropdown2', 'value'),
     Input('dropdown3', 'value'),
-    Input('dropdown4', 'value')
+    Input('dropdown4', 'value')]
 )
 def display_output(n_clicks, dropdown1, dropdown2, dropdown3, dropdown4):
     # Process the selected buttons
@@ -79,9 +97,10 @@ def display_output(n_clicks, dropdown1, dropdown2, dropdown3, dropdown4):
     selected_buttons4 = []
     selected_buttons5 = []
     list = []
+    repeat2 = repeat1
+    figure=px.histogram(repeat2, x='Roll', y='Common')
     if dropdown1:
         selected_buttons1.extend(dropdown1)
-        
     if dropdown2:
         selected_buttons2.extend(dropdown2)
     if dropdown3:
@@ -90,19 +109,19 @@ def display_output(n_clicks, dropdown1, dropdown2, dropdown3, dropdown4):
         selected_buttons4.extend(dropdown4)
 
     if len(selected_buttons1) > 1:
-        return "Error: Please One Roll number alone."
+        return "Error: Please One Roll number alone.", figure
     if len(selected_buttons2) > 6:
-        return "Error: Do not select more than 6 electives in Q5."
+        return "Error: Do not select more than 6 electives in Q5.", figure
     if len(selected_buttons3) > 6:
-        return "Error: Do not select more than 6 in Q6."
+        return "Error: Do not select more than 6 in Q6.", figure
     if len(selected_buttons4) > 6:
-        return "Error: Do not select more than 6 in Q7."
+        return "Error: Do not select more than 6 in Q7.", figure
     if len(selected_buttons2) < 6:
-        return "Error: Select 6 electives in Q5 add dummy to make 6."
+        return "Error: Select 6 electives in Q5 add dummy to make 6.", figure
     if len(selected_buttons3) < 6:
-        return "Error: Select 6 electives in Q6 add dummy to make 6."
+        return "Error: Select 6 electives in Q6 add dummy to make 6.", figure
     if len(selected_buttons4) < 6:
-        return "Error: Select 6 electives in Q7 add dummy to make 6."
+        return "Error: Select 6 electives in Q7 add dummy to make 6.", figure
 
     if n_clicks > 0:
         
@@ -126,11 +145,13 @@ def display_output(n_clicks, dropdown1, dropdown2, dropdown3, dropdown4):
                 E = 0
             repeat.iloc[y,1] = E 
             y = y+1
-            repeat1 = repeat[repeat['Common'] > 0]
-            figure=px.histogram(repeat1, x='Roll', y='Common')
+            
+        repeat2 = repeat[repeat['Common'] > 0]
+        repeat2.loc[repeat2[repeat2['Roll'] == main].index[0],'Common'] = 0
+        figure=px.histogram(repeat2, x='Roll', y='Common')
 
 
-    return f'Selected buttons: {selected_buttons1+selected_buttons1+selected_buttons2+selected_buttons3+selected_buttons4+selected_buttons5}'
+    return f'Selected buttons: {selected_buttons1+selected_buttons1+selected_buttons2+selected_buttons3+selected_buttons4+selected_buttons5}', figure
 
 
 
